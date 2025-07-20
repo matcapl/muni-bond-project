@@ -1,6 +1,8 @@
 .env
 certs/
 venv/
+.venv/
+.DS_Store
 node_modules/
 *.pyc
 __pycache__/
