@@ -1,0 +1,6 @@
+.env
+certs/
+venv/
+node_modules/
+*.pyc
+__pycache__/
