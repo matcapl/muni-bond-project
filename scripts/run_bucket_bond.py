@@ -30,10 +30,11 @@ try:
         print(f"No bond found for ISIN or CUSIP: {identifier}")
         sys.exit(1)
     df = pd.DataFrame(results, columns=[
-        "isin", "cusip", "interest_type", "tax_treatment", "callable_status", 
-        "insured_status", "bank_qualified_status", "sector", "purpose", 
-        "security_type", "state", "yield_best", "duration_eff", 
-        "size_outstanding", "liquidity_score", "credit_tag"
+        "isin", "cusip", "issuer_name", "interest_type", "tax_treatment",
+        "callable_status", "insured_status", "sector", "purpose",
+        "security_type", "pac_status", "state", "yield_best",
+        "duration_eff", "size_outstanding", "liquidity_score",
+        "credit_tag", "bucket_string"
     ])
     os.makedirs("results", exist_ok=True)
     df.to_csv("results/bond_bucketing.csv", index=False)

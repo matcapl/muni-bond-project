@@ -1,126 +1,125 @@
 SELECT 
-    r.isin, 
-    r.cusip,
-    -- Level 1: Structure
+    r.isin AS isin, 
+    r.cusip AS cusip,
+    r.issuer_name AS issuer_name,
     CASE 
-        WHEN r.interest_type IN ('fixed rate', 'term rate') THEN 'I_FX'
-        WHEN r.interest_type IN ('cab', 'cab-to-fixed', 'step rate') THEN 'I_CB'
-        WHEN r.interest_type = 'variable rate' THEN 'I_VR'
-        WHEN r.interest_type = 'zero rate / discount rate' OR r.coupon = 0 THEN 'I_ZR'
-        ELSE 'I_UK' 
+        WHEN r.interest_type IN ('fixed rate', 'term rate') THEN 'RF'
+        WHEN r.interest_type IN ('cab', 'cab-to-fixed', 'step rate') THEN 'RC'
+        WHEN r.interest_type = 'variable rate' THEN 'RV'
+        WHEN r.interest_type = 'zero rate / discount rate' OR r.coupon = 0 THEN 'RZ'
+        ELSE 'RU' 
     END AS interest_type,
+    CONCAT(
+        'T',
+        CASE WHEN r.is_amt = true THEN 'A' WHEN r.is_amt = false THEN 'B' ELSE 'C' END,
+        CASE WHEN r.is_state_taxable = true THEN 'S' WHEN r.is_state_taxable = false THEN 'V' ELSE 'U' END,
+        CASE WHEN r.is_federally_taxable = true THEN 'F' WHEN r.is_federally_taxable = false THEN 'G' ELSE 'H' END,
+        CASE WHEN r.is_bank_qualified = true THEN 'Q' WHEN r.is_bank_qualified = false THEN 'P' ELSE 'R' END
+    ) AS tax_treatment,
     CASE 
-        WHEN r.is_amt = true AND r.is_federally_taxable = true THEN 'T_AF'
-        WHEN r.is_amt = true AND (r.is_federally_taxable = false OR r.is_federally_taxable IS NULL) THEN 'T_AM'
-        WHEN (r.is_amt = false OR r.is_amt IS NULL) AND r.is_federally_taxable = true THEN 'T_XB'
-        WHEN (r.is_amt = false OR r.is_amt IS NULL) AND (r.is_federally_taxable = false OR r.is_federally_taxable IS NULL) THEN 'T_EX'
-        ELSE 'T_UK' 
-    END AS tax_treatment,
-    CASE 
-        WHEN r.is_callable = false OR r.is_callable IS NULL THEN 'C_NC'
-        WHEN r.is_callable = true AND r.first_call_date > '2028-07-20' THEN 'C_CP'
-        WHEN r.is_callable = true THEN 'C_CC'
+        WHEN r.is_callable = false OR r.is_callable IS NULL THEN 'CN'
+        WHEN r.is_callable = true AND r.first_call_date > '2028-07-21' THEN 'CP'
+        WHEN r.is_callable = true THEN 'CL'
+        ELSE 'CU' 
     END AS callable_status,
     CASE 
-        WHEN r.is_insured = true THEN 'I_YE'
-        ELSE 'I_NO' 
+        WHEN r.is_insured = true THEN 'I1'
+        ELSE 'I0' 
     END AS insured_status,
     CASE 
-        WHEN r.is_bank_qualified = true THEN 'B_YE'
-        ELSE 'B_NO' 
-    END AS bank_qualified_status,
-    -- Level 2: Cash-Flows
-    CASE 
-        WHEN r.sector = 'local' THEN 'S_LO'
-        WHEN r.sector = 'state' THEN 'S_ST'
-        WHEN r.sector = 'education' THEN 'S_ED'
-        WHEN r.sector = 'utilities' THEN 'S_UT'
-        WHEN r.sector = 'housing' THEN 'S_HO'
-        WHEN r.sector = 'transportation' THEN 'S_TR'
-        WHEN r.sector = 'healthcare' THEN 'S_HE'
-        WHEN r.sector = 'industrial' THEN 'S_IN'
-        WHEN r.sector = 'tobacco' THEN 'S_TO'
-        ELSE 'S_UK' 
+        WHEN r.sector = 'local' THEN 'SL'
+        WHEN r.sector = 'state' THEN 'SS'
+        WHEN r.sector = 'education' THEN 'SE'
+        WHEN r.sector = 'utilities' THEN 'SU'
+        WHEN r.sector = 'housing' THEN 'SG'
+        WHEN r.sector = 'transportation' THEN 'ST'
+        WHEN r.sector = 'healthcare' THEN 'SH'
+        WHEN r.sector = 'industrial' THEN 'SI'
+        WHEN r.sector = 'tobacco' THEN 'SB'
+        ELSE 'SK' 
     END AS sector,
     CASE 
-        WHEN r.purpose = 'Education' THEN 'P_ED'
-        WHEN r.purpose = 'Utility' THEN 'P_UT'
-        WHEN r.purpose = 'Housing' THEN 'P_HO'
-        WHEN r.purpose = 'Transportation' THEN 'P_TR'
-        ELSE 'P_OT' 
+        WHEN r.purpose = 'Education' THEN 'UE'
+        WHEN r.purpose = 'Utility' THEN 'UU'
+        WHEN r.purpose = 'Housing' THEN 'UG'
+        WHEN r.purpose = 'Transportation' THEN 'UT'
+        ELSE 'UA' 
     END AS purpose,
     CASE 
-        WHEN r.source_of_repayment = 'General Obligation' THEN 'R_GO'
-        WHEN r.source_of_repayment = 'Revenue' THEN 'R_RV'
-        WHEN r.source_of_repayment = 'Double Barrel' THEN 'R_DB'
-        ELSE 'R_OT' 
+        WHEN r.source_of_repayment = 'General Obligation' THEN 'RG'
+        WHEN r.source_of_repayment = 'Revenue' THEN 'RR'
+        WHEN r.source_of_repayment = 'Double Barrel' THEN 'RD'
+        ELSE 'RO' 
     END AS security_type,
-    -- Level 3: Location
     CASE 
-        WHEN r.state = 'TX' THEN 'S_TX'
-        WHEN r.state = 'CA' THEN 'S_CA'
-        WHEN r.state = 'NY' THEN 'S_NY'
-        WHEN r.state = 'MN' THEN 'S_MN'
-        WHEN r.state = 'WI' THEN 'S_WI'
-        WHEN r.state = 'PA' THEN 'S_PA'
-        WHEN r.state = 'MI' THEN 'S_MI'
-        WHEN r.state = 'IN' THEN 'S_IN'
-        WHEN r.state = 'IL' THEN 'S_IL'
-        WHEN r.state = 'MA' THEN 'S_MA'
-        WHEN r.state = 'OH' THEN 'S_OH'
-        WHEN r.state = 'NJ' THEN 'S_NJ'
-        WHEN r.state = 'KY' THEN 'S_KY'
-        WHEN r.state = 'FL' THEN 'S_FL'
-        WHEN r.state = 'IA' THEN 'S_IA'
-        WHEN r.state = 'WA' THEN 'S_WA'
-        WHEN r.state = 'KS' THEN 'S_KS'
-        WHEN r.state = 'CO' THEN 'S_CO'
-        WHEN r.state = 'CT' THEN 'S_CT'
-        WHEN r.state = 'VA' THEN 'S_VA'
-        WHEN r.state = 'MO' THEN 'S_MO'
-        WHEN r.state = 'TN' THEN 'S_TN'
-        WHEN r.state = 'AZ' THEN 'S_AZ'
-        WHEN r.state = 'MD' THEN 'S_MD'
-        WHEN r.state = 'OR' THEN 'S_OR'
-        WHEN r.state = 'AL' THEN 'S_AL'
-        WHEN r.state = 'GA' THEN 'S_GA'
-        WHEN r.state = 'NE' THEN 'S_NE'
-        WHEN r.state = 'NC' THEN 'S_NC'
-        WHEN r.state = 'SC' THEN 'S_SC'
-        WHEN r.state = 'LA' THEN 'S_LA'
-        WHEN r.state = 'OK' THEN 'S_OK'
-        WHEN r.state = 'UT' THEN 'S_UT'
-        WHEN r.state = 'NM' THEN 'S_NM'
-        WHEN r.state = 'ND' THEN 'S_ND'
-        WHEN r.state = 'ME' THEN 'S_ME'
-        WHEN r.state = 'NV' THEN 'S_NV'
-        WHEN r.state = 'MS' THEN 'S_MS'
-        WHEN r.state = 'SD' THEN 'S_SD'
-        WHEN r.state = 'RI' THEN 'S_RI'
-        WHEN r.state = 'NH' THEN 'S_NH'
-        WHEN r.state = 'MT' THEN 'S_MT'
-        WHEN r.state = 'ID' THEN 'S_ID'
-        WHEN r.state = 'AR' THEN 'S_AR'
-        WHEN r.state = 'WV' THEN 'S_WV'
-        WHEN r.state = 'HI' THEN 'S_HI'
-        WHEN r.state = 'AK' THEN 'S_AK'
-        WHEN r.state = 'VT' THEN 'S_VT'
-        WHEN r.state = 'DC' THEN 'S_DC'
-        WHEN r.state = 'DE' THEN 'S_DE'
-        WHEN r.state = 'WY' THEN 'S_WY'
-        WHEN r.state = 'GU' THEN 'S_GU'
-        WHEN r.state = 'PR' THEN 'S_PR'
-        WHEN r.state = 'VI' THEN 'S_VI'
-        WHEN r.state = 'NA' THEN 'S_NA'
-        ELSE 'S_UK' 
+        WHEN r.is_pac = true THEN 'P1'
+        WHEN r.is_pac = false THEN 'P0'
+        ELSE 'P2' 
+    END AS pac_status,
+    CASE 
+        WHEN r.state = 'TX' THEN 'TX'
+        WHEN r.state = 'CA' THEN 'CA'
+        WHEN r.state = 'NY' THEN 'NY'
+        WHEN r.state = 'MN' THEN 'MN'
+        WHEN r.state = 'WI' THEN 'WI'
+        WHEN r.state = 'PA' THEN 'PA'
+        WHEN r.state = 'MI' THEN 'MI'
+        WHEN r.state = 'IN' THEN 'IN'
+        WHEN r.state = 'IL' THEN 'IL'
+        WHEN r.state = 'MA' THEN 'MA'
+        WHEN r.state = 'OH' THEN 'OH'
+        WHEN r.state = 'NJ' THEN 'NJ'
+        WHEN r.state = 'KY' THEN 'KY'
+        WHEN r.state = 'FL' THEN 'FL'
+        WHEN r.state = 'IA' THEN 'IA'
+        WHEN r.state = 'WA' THEN 'WA'
+        WHEN r.state = 'KS' THEN 'KS'
+        WHEN r.state = 'CO' THEN 'CO'
+        WHEN r.state = 'CT' THEN 'CT'
+        WHEN r.state = 'VA' THEN 'VA'
+        WHEN r.state = 'MO' THEN 'MO'
+        WHEN r.state = 'TN' THEN 'TN'
+        WHEN r.state = 'AZ' THEN 'AZ'
+        WHEN r.state = 'MD' THEN 'MD'
+        WHEN r.state = 'OR' THEN 'OR'
+        WHEN r.state = 'AL' THEN 'AL'
+        WHEN r.state = 'GA' THEN 'GA'
+        WHEN r.state = 'NE' THEN 'NE'
+        WHEN r.state = 'NC' THEN 'NC'
+        WHEN r.state = 'SC' THEN 'SC'
+        WHEN r.state = 'LA' THEN 'LA'
+        WHEN r.state = 'OK' THEN 'OK'
+        WHEN r.state = 'UT' THEN 'UT'
+        WHEN r.state = 'NM' THEN 'NM'
+        WHEN r.state = 'ND' THEN 'ND'
+        WHEN r.state = 'ME' THEN 'ME'
+        WHEN r.state = 'NV' THEN 'NV'
+        WHEN r.state = 'MS' THEN 'MS'
+        WHEN r.state = 'SD' THEN 'SD'
+        WHEN r.state = 'RI' THEN 'RI'
+        WHEN r.state = 'NH' THEN 'NH'
+        WHEN r.state = 'MT' THEN 'MT'
+        WHEN r.state = 'ID' THEN 'ID'
+        WHEN r.state = 'AR' THEN 'AR'
+        WHEN r.state = 'WV' THEN 'WV'
+        WHEN r.state = 'HI' THEN 'HI'
+        WHEN r.state = 'AK' THEN 'AK'
+        WHEN r.state = 'VT' THEN 'VT'
+        WHEN r.state = 'DC' THEN 'DC'
+        WHEN r.state = 'DE' THEN 'DE'
+        WHEN r.state = 'WY' THEN 'WY'
+        WHEN r.state = 'GU' THEN 'GU'
+        WHEN r.state = 'PR' THEN 'PR'
+        WHEN r.state = 'VI' THEN 'VI'
+        WHEN r.state = 'NA' THEN 'NA'
+        ELSE 'UK' 
     END AS state,
-    -- Standalone Fields
     COALESCE(p.msrb_yield, p.ytm_semi_annual, p.ytc_semi_annual) AS yield_best,
     CASE 
         WHEN r.interest_type IN ('fixed rate', 'term rate', 'cab', 'cab-to-fixed', 'step rate') THEN 
-            EXTRACT(YEAR FROM AGE(LEAST(r.maturity_date, COALESCE(r.first_call_date, r.maturity_date)), '2025-07-20'))
+            EXTRACT(YEAR FROM AGE(LEAST(r.maturity_date, COALESCE(r.first_call_date, r.maturity_date)), '2025-07-21'))
         WHEN r.interest_type = 'variable rate' THEN 1
-        WHEN r.interest_type = 'zero rate / discount rate' THEN EXTRACT(YEAR FROM AGE(r.maturity_date, '2025-07-20'))
+        WHEN r.interest_type = 'zero rate / discount rate' THEN EXTRACT(YEAR FROM AGE(r.maturity_date, '2025-07-21'))
         ELSE NULL 
     END AS duration_eff,
     r.issued_amount AS size_outstanding,
@@ -129,8 +128,123 @@ SELECT
         FROM us_munis_trades t
         WHERE t.cusip = r.cusip
     ), 1) AS liquidity_score,
-    COALESCE(r.composite_rating, r.rating_group) AS credit_tag
+    COALESCE(r.composite_rating, r.rating_group) AS credit_tag,
+    CONCAT(
+        (CASE 
+            WHEN r.interest_type IN ('fixed rate', 'term rate') THEN 'RF'
+            WHEN r.interest_type IN ('cab', 'cab-to-fixed', 'step rate') THEN 'RC'
+            WHEN r.interest_type = 'variable rate' THEN 'RV'
+            WHEN r.interest_type = 'zero rate / discount rate' OR r.coupon = 0 THEN 'RZ'
+            ELSE 'RU' 
+        END),
+        (CONCAT(
+            'T',
+            CASE WHEN r.is_amt = true THEN 'A' WHEN r.is_amt = false THEN 'B' ELSE 'C' END,
+            CASE WHEN r.is_state_taxable = true THEN 'S' WHEN r.is_state_taxable = false THEN 'V' ELSE 'U' END,
+            CASE WHEN r.is_federally_taxable = true THEN 'F' WHEN r.is_federally_taxable = false THEN 'G' ELSE 'H' END,
+            CASE WHEN r.is_bank_qualified = true THEN 'Q' WHEN r.is_bank_qualified = false THEN 'P' ELSE 'R' END
+        )),
+        (CASE 
+            WHEN r.is_callable = false OR r.is_callable IS NULL THEN 'CN'
+            WHEN r.is_callable = true AND r.first_call_date > '2028-07-21' THEN 'CP'
+            WHEN r.is_callable = true THEN 'CL'
+            ELSE 'CU' 
+        END),
+        (CASE 
+            WHEN r.is_insured = true THEN 'I1'
+            ELSE 'I0' 
+        END),
+        (CASE 
+            WHEN r.sector = 'local' THEN 'SL'
+            WHEN r.sector = 'state' THEN 'SS'
+            WHEN r.sector = 'education' THEN 'SE'
+            WHEN r.sector = 'utilities' THEN 'SU'
+            WHEN r.sector = 'housing' THEN 'SG'
+            WHEN r.sector = 'transportation' THEN 'ST'
+            WHEN r.sector = 'healthcare' THEN 'SH'
+            WHEN r.sector = 'industrial' THEN 'SI'
+            WHEN r.sector = 'tobacco' THEN 'SB'
+            ELSE 'SK' 
+        END),
+        (CASE 
+            WHEN r.purpose = 'Education' THEN 'UE'
+            WHEN r.purpose = 'Utility' THEN 'UU'
+            WHEN r.purpose = 'Housing' THEN 'UG'
+            WHEN r.purpose = 'Transportation' THEN 'UT'
+            ELSE 'UA' 
+        END),
+        (CASE 
+            WHEN r.source_of_repayment = 'General Obligation' THEN 'RG'
+            WHEN r.source_of_repayment = 'Revenue' THEN 'RR'
+            WHEN r.source_of_repayment = 'Double Barrel' THEN 'RD'
+            ELSE 'RO' 
+        END),
+        (CASE 
+            WHEN r.is_pac = true THEN 'P1'
+            WHEN r.is_pac = false THEN 'P0'
+            ELSE 'P2' 
+        END),
+        (CASE 
+            WHEN r.state = 'TX' THEN 'TX'
+            WHEN r.state = 'CA' THEN 'CA'
+            WHEN r.state = 'NY' THEN 'NY'
+            WHEN r.state = 'MN' THEN 'MN'
+            WHEN r.state = 'WI' THEN 'WI'
+            WHEN r.state = 'PA' THEN 'PA'
+            WHEN r.state = 'MI' THEN 'MI'
+            WHEN r.state = 'IN' THEN 'IN'
+            WHEN r.state = 'IL' THEN 'IL'
+            WHEN r.state = 'MA' THEN 'MA'
+            WHEN r.state = 'OH' THEN 'OH'
+            WHEN r.state = 'NJ' THEN 'NJ'
+            WHEN r.state = 'KY' THEN 'KY'
+            WHEN r.state = 'FL' THEN 'FL'
+            WHEN r.state = 'IA' THEN 'IA'
+            WHEN r.state = 'WA' THEN 'WA'
+            WHEN r.state = 'KS' THEN 'KS'
+            WHEN r.state = 'CO' THEN 'CO'
+            WHEN r.state = 'CT' THEN 'CT'
+            WHEN r.state = 'VA' THEN 'VA'
+            WHEN r.state = 'MO' THEN 'MO'
+            WHEN r.state = 'TN' THEN 'TN'
+            WHEN r.state = 'AZ' THEN 'AZ'
+            WHEN r.state = 'MD' THEN 'MD'
+            WHEN r.state = 'OR' THEN 'OR'
+            WHEN r.state = 'AL' THEN 'AL'
+            WHEN r.state = 'GA' THEN 'GA'
+            WHEN r.state = 'NE' THEN 'NE'
+            WHEN r.state = 'NC' THEN 'NC'
+            WHEN r.state = 'SC' THEN 'SC'
+            WHEN r.state = 'LA' THEN 'LA'
+            WHEN r.state = 'OK' THEN 'OK'
+            WHEN r.state = 'UT' THEN 'UT'
+            WHEN r.state = 'NM' THEN 'NM'
+            WHEN r.state = 'ND' THEN 'ND'
+            WHEN r.state = 'ME' THEN 'ME'
+            WHEN r.state = 'NV' THEN 'NV'
+            WHEN r.state = 'MS' THEN 'MS'
+            WHEN r.state = 'SD' THEN 'SD'
+            WHEN r.state = 'RI' THEN 'RI'
+            WHEN r.state = 'NH' THEN 'NH'
+            WHEN r.state = 'MT' THEN 'MT'
+            WHEN r.state = 'ID' THEN 'ID'
+            WHEN r.state = 'AR' THEN 'AR'
+            WHEN r.state = 'WV' THEN 'WV'
+            WHEN r.state = 'HI' THEN 'HI'
+            WHEN r.state = 'AK' THEN 'AK'
+            WHEN r.state = 'VT' THEN 'VT'
+            WHEN r.state = 'DC' THEN 'DC'
+            WHEN r.state = 'DE' THEN 'DE'
+            WHEN r.state = 'WY' THEN 'WY'
+            WHEN r.state = 'GU' THEN 'GU'
+            WHEN r.state = 'PR' THEN 'PR'
+            WHEN r.state = 'VI' THEN 'VI'
+            WHEN r.state = 'NA' THEN 'NA'
+            ELSE 'UK' 
+        END)
+    ) AS bucket_string
 FROM us_munis_reference r
 LEFT JOIN us_munis_pricing p ON r.isin = p.isin
+LEFT JOIN us_munis_trades t ON r.cusip = t.cusip
 WHERE r.isin = %s OR r.cusip = %s
 LIMIT 1;
