@@ -37,8 +37,10 @@ try:
         "credit_tag", "bucket_string"
     ])
     os.makedirs("results", exist_ok=True)
-    df.to_csv("results/bond_bucketing.csv", index=False)
-    print("Bond bucketing saved to results/bond_bucketing.csv")
+    output_file = "results/bond_bucketing.csv"
+    # Append to CSV, write header only if file doesn't exist
+    df.to_csv(output_file, mode='a', header=not os.path.exists(output_file), index=False)
+    print("Bond bucketing appended to results/bond_bucketing.csv")
 except Exception as e:
     print(f"Error: {e}")
 finally:
